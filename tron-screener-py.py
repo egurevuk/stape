@@ -82,11 +82,14 @@ def fetch_tx_detail(tx_hash):
         energy_total  = cost.get("energy_usage_total", 0)
         energy_staked = cost.get("energy_usage", 0)
         energy_burned = energy_total - energy_staked          # ✅ always consistent
-        energy_fee    = cost.get("energy_fee", 0)
+        energy_fee    = cost.get("energy_fee", 0)             # sun paid for burned energy
         net_fee       = cost.get("net_fee", 0)
         total_fee_sun = cost.get("fee", 0)
         trx_burned    = total_fee_sun / 1e6 if total_fee_sun else (energy_fee + net_fee) / 1e6
-        trx_saved     = (energy_staked * ENERGY_UNIT_PRICE_SUN) / 1e6
+
+        # Real price per energy unit from this specific tx (not hardcoded)
+        real_price_sun = (energy_fee / energy_burned) if energy_burned > 0 else ENERGY_UNIT_PRICE_SUN
+        trx_saved      = (energy_staked * real_price_sun) / 1e6
 
         return {
             "energy_total":  energy_total,
