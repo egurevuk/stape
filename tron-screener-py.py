@@ -79,17 +79,18 @@ def fetch_tx_detail(tx_hash):
     try:
         data = get(f"{TRONSCAN_BASE}/transaction-info", {"hash": tx_hash})
         cost = data.get("cost") or {}
-        energy_usage  = cost.get("energy_usage", 0)
-        energy_fee    = cost.get("energy_fee", 0)
-        energy_total  = cost.get("energy_usage_total", 0) or (energy_usage + int(energy_fee / ENERGY_UNIT_PRICE_SUN))
+        energy_fee    = cost.get("energy_fee", 0)            # SUN paid for energy (burned)
+        energy_burned = int(energy_fee / ENERGY_UNIT_PRICE_SUN) if ENERGY_UNIT_PRICE_SUN else 0
+        energy_total  = cost.get("energy_usage_total", 0) or energy_burned  # total from API
+        energy_staked = max(energy_total - energy_burned, 0)  # derived = total - burned ✅
         net_fee       = cost.get("net_fee", 0)
         total_fee_sun = cost.get("fee", 0)
         trx_burned    = total_fee_sun / 1e6 if total_fee_sun else (energy_fee + net_fee) / 1e6
-        trx_saved     = (energy_usage * ENERGY_UNIT_PRICE_SUN) / 1e6
+        trx_saved     = (energy_staked * ENERGY_UNIT_PRICE_SUN) / 1e6
         return {
-            "energy_total":  energy_total,
-            "energy_staked": energy_usage,
-            "energy_burned": int(energy_fee / ENERGY_UNIT_PRICE_SUN) if ENERGY_UNIT_PRICE_SUN else 0,
+            "energy_total":  energy_total,   # = energy_staked + energy_burned ✅
+            "energy_staked": energy_staked,
+            "energy_burned": energy_burned,
             "trx_burned":    trx_burned,
             "trx_saved":     trx_saved,
         }
